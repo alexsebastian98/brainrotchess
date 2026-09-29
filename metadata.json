@@ -1,0 +1,6 @@
+{
+  "name": "Brainrot Chess",
+  "description": "Real competitive multiplayer chess powered by chaotic internet meme audio reactions, blunder alarms, and smart engine evaluations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
