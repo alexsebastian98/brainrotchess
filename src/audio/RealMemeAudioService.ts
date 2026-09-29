@@ -32,6 +32,15 @@ class RealMemeAudioService {
     this.setupAutoUnlock();
   }
 
+  private normalizeUrl(url: string): string {
+    if (!url) return url;
+    if (/^(?:[a-z]+:)?\/\//i.test(url) || /^data:/i.test(url) || /^blob:/i.test(url)) return url;
+    if (typeof window === 'undefined') return url;
+
+    const normalizedBase = `${window.location.origin}${import.meta.env.BASE_URL || '/'}`;
+    return new URL(url.replace(/^\/+/, ''), normalizedBase).toString();
+  }
+
   private initAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
     if (!this.audioCtx) {
@@ -153,11 +162,12 @@ class RealMemeAudioService {
    * Preload an audio clip into memory for 0ms instantaneous latency.
    */
   public async preload(url: string): Promise<AudioBuffer | null> {
-    if (this.bufferCache.has(url)) {
-      return this.bufferCache.get(url)!;
+    const resolvedUrl = this.normalizeUrl(url);
+    if (this.bufferCache.has(resolvedUrl)) {
+      return this.bufferCache.get(resolvedUrl)!;
     }
-    if (this.pendingFetches.has(url)) {
-      return this.pendingFetches.get(url)!;
+    if (this.pendingFetches.has(resolvedUrl)) {
+      return this.pendingFetches.get(resolvedUrl)!;
     }
 
     const fetchPromise = (async () => {
@@ -165,20 +175,20 @@ class RealMemeAudioService {
         const ctx = this.initAudioContext();
         if (!ctx) return null;
 
-        const response = await fetch(url);
+        const response = await fetch(resolvedUrl);
         if (!response.ok) return null;
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-        this.bufferCache.set(url, audioBuffer);
+        this.bufferCache.set(resolvedUrl, audioBuffer);
         return audioBuffer;
       } catch {
         return null;
       } finally {
-        this.pendingFetches.delete(url);
+        this.pendingFetches.delete(resolvedUrl);
       }
     })();
 
-    this.pendingFetches.set(url, fetchPromise);
+    this.pendingFetches.set(resolvedUrl, fetchPromise);
     return fetchPromise;
   }
 
@@ -197,13 +207,15 @@ class RealMemeAudioService {
     // RULE: Enforce ZERO OVERLAP by killing previous sound immediately!
     this.stop();
 
+    const normalizedPrimaryUrl = this.normalizeUrl(primaryUrl);
+    const normalizedFallbackUrl = fallbackUrl ? this.normalizeUrl(fallbackUrl) : undefined;
     const vol = customVolume !== undefined ? customVolume : this.masterVolume;
-    const resolvedSoundId = soundId || primaryUrl.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'meme';
+    const resolvedSoundId = soundId || normalizedPrimaryUrl.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'meme';
     this.setActiveSound(resolvedSoundId);
 
     // Try Web Audio API if buffer is already decoded or AudioContext is ready
     const ctx = this.initAudioContext();
-    const cachedBuffer = this.bufferCache.get(primaryUrl);
+    const cachedBuffer = this.bufferCache.get(normalizedPrimaryUrl);
 
     if (ctx && cachedBuffer) {
       this.playAudioBuffer(ctx, cachedBuffer, vol, resolvedSoundId);
@@ -211,12 +223,12 @@ class RealMemeAudioService {
     }
 
     // If buffer not yet loaded, start loading in background and try HTMLAudioElement
-    this.preload(primaryUrl).then((buf) => {
+    this.preload(normalizedPrimaryUrl).then((buf) => {
       // Buffer loaded for next time
     }).catch(() => {});
 
     // Use HTMLAudioElement with strict 1-second cutoff
-    this.playAudioElement(primaryUrl, fallbackUrl, vol, resolvedSoundId);
+    this.playAudioElement(normalizedPrimaryUrl, normalizedFallbackUrl, vol, resolvedSoundId);
   }
 
   private playAudioBuffer(
@@ -271,7 +283,7 @@ class RealMemeAudioService {
       }, 1000);
     } catch {
       // Fallback to element
-      this.playAudioElement(buffer ? '' : '', undefined, volume, soundId);
+      this.playAudioElement('', undefined, volume, soundId);
     }
   }
 
@@ -283,7 +295,10 @@ class RealMemeAudioService {
   ): void {
     if (!primaryUrl) return;
 
-    const audio = new Audio(primaryUrl);
+    const safePrimaryUrl = this.normalizeUrl(primaryUrl);
+    const safeFallbackUrl = fallbackUrl ? this.normalizeUrl(fallbackUrl) : undefined;
+
+    const audio = new Audio(safePrimaryUrl);
     audio.preload = 'auto';
     audio.volume = Math.max(0, Math.min(1, volume));
     this.currentAudioElement = audio;
@@ -322,9 +337,9 @@ class RealMemeAudioService {
 
     audio.onerror = () => {
       // If primary link fails, try fallback
-      if (fallbackUrl && fallbackUrl !== primaryUrl && this.currentAudioElement === audio) {
+      if (safeFallbackUrl && safeFallbackUrl !== safePrimaryUrl && this.currentAudioElement === audio) {
         this.stop();
-        const fallbackAudio = new Audio(fallbackUrl);
+        const fallbackAudio = new Audio(safeFallbackUrl);
         fallbackAudio.preload = 'auto';
         fallbackAudio.volume = Math.max(0, Math.min(1, volume));
         this.currentAudioElement = fallbackAudio;
@@ -351,7 +366,7 @@ class RealMemeAudioService {
           startOneSecondCutoff();
         })
         .catch(() => {
-          if (fallbackUrl && fallbackUrl !== primaryUrl) {
+          if (safeFallbackUrl && safeFallbackUrl !== safePrimaryUrl) {
             audio.onerror?.(new Event('error'));
           }
         });
