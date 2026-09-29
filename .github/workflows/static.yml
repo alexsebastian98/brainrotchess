@@ -1,26 +1,58 @@
+Commit f998f75
+alexsebastian98
+alexsebastian98
+authored
+5 minutes ago
+·
+·
+Verified
+Add GitHub Actions workflow for static site deployment
+This workflow automates the deployment of static content to GitHub Pages on pushes to the main branch.
+main
+1 parent 
+e90713e
+ commit 
+f998f75
+1 file changed
+
++43
+Lines changed: 43 additions & 0 deletions
+File tree
+Filter files…
+.github/workflows
+static.yml
+Search within code
+ 
+‎.github/workflows/static.yml‎
++43
+Lines changed: 43 additions & 0 deletions
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,43 @@
 # Simple workflow for deploying static content to GitHub Pages
 name: Deploy static content to Pages
+alexsebastian98Add a comment on line R2
+Add diff comment
+Markdown input: edit mode selected.
+Write
+Preview
+Leave a comment
 
 on:
   # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
-
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
   group: "pages"
   cancel-in-progress: false
-
 jobs:
   # Single deploy job since we're just deploying
   deploy:
@@ -41,3 +73,9 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+0 commit comments
+Comments
+0
+ (0)
+Comment
+You're not receiving notifications from t
