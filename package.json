@@ -1,8 +1,11 @@
 {
-  "name": "react-example",
-  "private": true,
-  "version": "0.0.0",
+  "name": "@alexsebastian98/brainrotchess",
+  "version": "1.0.0",
+  "description": "bruh",
   "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build",
@@ -11,6 +14,12 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alexsebastian98/brainrotchess.git"
+  },
+  "author": "alexsebastian98",
+  "license": "MIT",
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.3.3",
@@ -38,5 +47,8 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
